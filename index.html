@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Babylon Template</title>
+
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+    </style>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  </head>
+
+  <body>
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+      const canvas = document.getElementById("renderCanvas"); // Get the canvas element
+      const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+      var camera = null;
+      var guid = 0;
+      var allData = {};
+      var allSphoreData = {};
+      var linesystem = null;
+      var idx = 0;
+      const CreateSphore = function (
+        x = 0,
+        y = 0,
+        z = 0,
+        id = 0,
+        _scene = null
+      ) {
+        if (_scene == null) {
+          _scene = scene;
+        }
+        // Create core sphere
+        var coreSphere = BABYLON.MeshBuilder.CreateSphere(
+          "coreSphere_" + id,
+          { diameter: 2.01, segments: 64 },
+          _scene
+        );
+        coreSphere.setAbsolutePosition(x, y, z);
+        // Create core material
+        var coreMat = new BABYLON.StandardMaterial("coreMat", _scene);
+        coreMat.emissiveColor = new BABYLON.Color3(0.3773, 0.093, 0.0266);
+
+        // Assign core material to sphere
+        coreSphere.material = coreMat;
+        const size = 1;
+        coreSphere.scaling = new BABYLON.Vector3(size, size, size);
+        // Create a particle system
+        var surfaceParticles = new BABYLON.ParticleSystem(
+          "surfaceParticles",
+          600,
+          _scene
+        );
+        var flareParticles = new BABYLON.ParticleSystem(
+          "flareParticles",
+          20,
+          _scene
+        );
+        var coronaParticles = new BABYLON.ParticleSystem(
+          "coronaParticles",
+          600,
+          _scene
+        );
+
+        // Texture of each particle
+        surfaceParticles.particleTexture = new BABYLON.Texture(
+          "https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Sun/T_SunSurface.png",
+          _scene
+        );
+        flareParticles.particleTexture = new BABYLON.Texture(
+          "https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Sun/T_SunFlare.png",
+          _scene
+        );
+        coronaParticles.particleTexture = new BABYLON.Texture(
+          "https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Sun/T_Star.png",
+          _scene
+        );
+
+        // Pre-warm
+        surfaceParticles.preWarmStepOffset = 10;
+        surfaceParticles.preWarmCycles = 100;
+
+        flareParticles.preWarmStepOffset = 10;
+        flareParticles.preWarmCycles = 100;
+
+        coronaParticles.preWarmStepOffset = 10;
+        coronaParticles.preWarmCycles = 100;
+
+        // Initial rotation
+        surfaceParticles.minInitialRotation = -2 * Math.PI;
+        surfaceParticles.maxInitialRotation = 2 * Math.PI;
+
+        flareParticles.minInitialRotation = -2 * Math.PI;
+        flareParticles.maxInitialRotation = 2 * Math.PI;
+
+        coronaParticles.minInitialRotation = -2 * Math.PI;
+        coronaParticles.maxInitialRotation = 2 * Math.PI;
+        // Where the sun particles come from
+        var sunEmitter = new BABYLON.SphereParticleEmitter();
+        sunEmitter.radius = 1;
+        sunEmitter.radiusRange = 0; // emit only from shape surface
+
+        // Assign particles to emitters
+        surfaceParticles.emitter = coreSphere; // the starting object, the emitter
+        surfaceParticles.particleEmitterType = sunEmitter;
+
+        flareParticles.emitter = coreSphere; // the starting object, the emitter
+        flareParticles.particleEmitterType = sunEmitter;
+
+        coronaParticles.emitter = coreSphere; // the starting object, the emitter
+        coronaParticles.particleEmitterType = sunEmitter;
+        // Color gradient over time
+        surfaceParticles.addColorGradient(
+          0,
+          new BABYLON.Color4(0.8509, 0.4784, 0.1019, 0.0)
+        );
+        surfaceParticles.addColorGradient(
+          0.4,
+          new BABYLON.Color4(0.6259, 0.3056, 0.0619, 0.5)
+        );
+        surfaceParticles.addColorGradient(
+          0.5,
+          new BABYLON.Color4(0.6039, 0.2887, 0.0579, 0.5)
+        );
+        surfaceParticles.addColorGradient(
+          1.0,
+          new BABYLON.Color4(0.3207, 0.0713, 0.0075, 0.0)
+        );
+
+        flareParticles.addColorGradient(
+          0,
+          new BABYLON.Color4(1, 0.9612, 0.5141, 0.0)
+        );
+        flareParticles.addColorGradient(
+          0.25,
+          new BABYLON.Color4(0.9058, 0.7152, 0.3825, 1.0)
+        );
+        flareParticles.addColorGradient(
+          1.0,
+          new BABYLON.Color4(0.632, 0.0, 0.0, 0.0)
+        );
+
+        coronaParticles.addColorGradient(
+          0,
+          new BABYLON.Color4(0.8509, 0.4784, 0.1019, 0.0)
+        );
+        coronaParticles.addColorGradient(
+          0.5,
+          new BABYLON.Color4(0.6039, 0.2887, 0.0579, 0.12)
+        );
+        coronaParticles.addColorGradient(
+          1.0,
+          new BABYLON.Color4(0.3207, 0.0713, 0.0075, 0.0)
+        );
+
+        // Size of each particle (random between...
+        surfaceParticles.minSize = 0.4 * size;
+        surfaceParticles.maxSize = 0.7 * size;
+
+        flareParticles.minScaleX = 0.5;
+        flareParticles.minScaleY = 0.5;
+        flareParticles.maxScaleX = 1.0;
+        flareParticles.maxScaleY = 1.0;
+
+        coronaParticles.minScaleX = 0.5;
+        coronaParticles.minScaleY = 0.75;
+        coronaParticles.maxScaleX = 1.2;
+        coronaParticles.maxScaleY = 3.0;
+        // Size over lifetime
+        flareParticles.addSizeGradient(0, 0);
+        flareParticles.addSizeGradient(1, 1);
+
+        // Life time of each particle (random between...
+        surfaceParticles.minLifeTime = 3.0;
+        surfaceParticles.maxLifeTime = 8.0;
+
+        flareParticles.minLifeTime = 3.0;
+        flareParticles.maxLifeTime = 10.0;
+
+        coronaParticles.minLifeTime = 1.0;
+        coronaParticles.maxLifeTime = 3.0;
+
+        // Emission rate
+        surfaceParticles.emitRate = 200;
+        flareParticles.emitRate = 1;
+        coronaParticles.emitRate = 300;
+        surfaceParticles.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+        flareParticles.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+        coronaParticles.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+        surfaceParticles.gravity = new BABYLON.Vector3(0, 0, 0);
+        flareParticles.gravity = new BABYLON.Vector3(0, 0, 0);
+        coronaParticles.gravity = new BABYLON.Vector3(0, 0, 0);
+        surfaceParticles.minAngularSpeed = -0.4;
+        surfaceParticles.maxAngularSpeed = 0.4;
+
+        flareParticles.minAngularSpeed = 0.0;
+        flareParticles.maxAngularSpeed = 0.0;
+
+        coronaParticles.minAngularSpeed = 0.0;
+        coronaParticles.maxAngularSpeed = 0.0;
+
+        // Speed
+        surfaceParticles.minEmitPower = 0;
+        surfaceParticles.maxEmitPower = 0;
+        surfaceParticles.updateSpeed = 0.05;
+
+        flareParticles.minEmitPower = 0.001;
+        flareParticles.maxEmitPower = 0.01;
+        flareParticles.updateSpeed = 0.05;
+
+        coronaParticles.minEmitPower = 0.0;
+        coronaParticles.maxEmitPower = 0.0;
+
+        // No billboard
+        surfaceParticles.isBillboardBased = false;
+        flareParticles.isBillboardBased = true;
+        coronaParticles.isBillboardBased = true;
+
+        // Render Order
+        coronaParticles.renderingGroupId = 1;
+        flareParticles.renderingGroupId = 2;
+        surfaceParticles.renderingGroupId = 3;
+        coreSphere.renderingGroupId = 3;
+
+        // Start the particle system
+        surfaceParticles.start();
+        flareParticles.start();
+        coronaParticles.start();
+        coreSphere.coronaParticles = coronaParticles;
+        coreSphere.coronas = {};
+        return coreSphere;
+      };
+      function GetCurrentCameraPos() {
+        var x = window.screenX - screen.width / 2;
+        var y = window.screenY - screen.height / 2;
+        var centerX = x + window.innerWidth / 2;
+        var centerY = y + window.innerHeight / 2;
+        return new BABYLON.Vector3(centerX / 100, -centerY / 100, -1000);
+      }
+      var createScene = function () {
+        var _scene = new BABYLON.Scene(engine);
+        // 将场景设置为右手坐标系
+        _scene.useRightHandedSystem = true;
+        // Setup environment
+        // var camera = new BABYLON.ArcRotateCamera(
+        // 	"ArcRotateCamera",
+        // 	0,
+        // 	0,
+        // 	500,
+        // 	new BABYLON.Vector3(0, 0, 0),
+        // 	scene
+        // );
+        var pos = GetCurrentCameraPos();
+        camera = new BABYLON.FreeCamera("camera", pos, _scene);
+        camera.attachControl(canvas, true);
+        _scene.clearColor = new BABYLON.Color3(0.0, 0.0, 0.0);
+        camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA; //指定相机的类型
+        var ratio = window.innerHeight / window.innerWidth; //计算屏幕宽高比
+        camera.orthoLeft = window.innerWidth / 2 / 100; //设置近平面的左侧边界
+        camera.orthoRight = -window.innerWidth / 2 / 100; //设置近平面的右侧边界
+        camera.orthoTop = camera.orthoLeft * ratio; //设置近平面的顶部边界
+        camera.orthoBottom = -camera.orthoLeft * ratio; //设置近平面的底部边界
+
+        // 移除鼠标移动控制器
+        camera.inputs.removeByType("ArcRotateCameraPointersInput");
+        camera.inputs.removeMouse();
+        // Emitter object
+        var stars = BABYLON.Mesh.CreateBox("emitter", 0.01, _scene);
+
+        var starsParticles = new BABYLON.ParticleSystem(
+          "starsParticles",
+          500,
+          _scene
+        );
+
+        starsParticles.particleTexture = new BABYLON.Texture(
+          "https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Sun/T_Star.png",
+          _scene
+        );
+
+        // Where the stars particles come from
+        var starsEmitter = new BABYLON.SphereParticleEmitter();
+        starsEmitter.radius = 20;
+        starsEmitter.radiusRange = 0; // emit only from shape surface
+
+        starsParticles.emitter = stars; // the starting object, the emitter
+        starsParticles.particleEmitterType = starsEmitter;
+
+        // Random starting color
+        starsParticles.color1 = new BABYLON.Color4(0.898, 0.737, 0.718, 1.0);
+        starsParticles.color2 = new BABYLON.Color4(0.584, 0.831, 0.894, 1.0);
+
+        starsParticles.minSize = 0.15;
+        starsParticles.maxSize = 0.3;
+
+        starsParticles.minLifeTime = 999999;
+        starsParticles.maxLifeTime = 999999;
+
+        // Burst rate
+        starsParticles.manualEmitCount = 500;
+        starsParticles.maxEmitPower = 0.0;
+
+        // Blend mode : BLENDMODE_ONEONE, BLENDMODE_STANDARD, or BLENDMODE_ADD
+
+        starsParticles.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
+
+        // Set the gravity of all particles
+
+        starsParticles.gravity = new BABYLON.Vector3(0, 0, 0);
+
+        // Angular speed, in radians
+
+        starsParticles.minAngularSpeed = 0.0;
+        starsParticles.maxAngularSpeed = 0.0;
+
+        starsParticles.minEmitPower = 0.0;
+        starsParticles.maxAngularSpeed = 0.0;
+        starsParticles.isBillboardBased = true;
+        starsParticles.renderingGroupId = 0;
+
+        starsParticles.start();
+        // 创建一个坐标系
+        var axisSize = 0;
+        var axisX = BABYLON.Axis.X;
+        var axisY = BABYLON.Axis.Y;
+        var axisZ = BABYLON.Axis.Z;
+
+        var xLine = BABYLON.LinesBuilder.CreateLines(
+          "xLine",
+          {
+            points: [
+              new BABYLON.Vector3.Zero(),
+              new BABYLON.Vector3(axisSize, 0, 0),
+            ],
+          },
+          _scene
+        );
+        var yLine = BABYLON.LinesBuilder.CreateLines(
+          "yLine",
+          {
+            points: [
+              new BABYLON.Vector3.Zero(),
+              new BABYLON.Vector3(0, axisSize, 0),
+            ],
+          },
+          _scene
+        );
+        var zLine = BABYLON.LinesBuilder.CreateLines(
+          "zLine",
+          {
+            points: [
+              new BABYLON.Vector3.Zero(),
+              new BABYLON.Vector3(0, 0, axisSize),
+            ],
+          },
+          _scene
+        );
+
+        xLine.color = new BABYLON.Color3(1, 0, 0); // 红色
+        yLine.color = new BABYLON.Color3(0, 1, 0); // 绿色
+        zLine.color = new BABYLON.Color3(0, 0, 1); // 蓝色
+        // CreateSphore(0, 0, 0, 0, _scene);
+        var currentPos = GetCurrentCameraPos();
+        allSphoreData[guid] = CreateSphore(
+          currentPos.x,
+          currentPos.y,
+          0,
+          guid,
+          _scene
+        );
+        //Array of lines to construct linesystem
+        const myLines = [
+          [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0)],
+          [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0)],
+          [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0)],
+          [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0)],
+        ];
+
+        //Array one color per point in the lines system
+        const myColors = [
+          [new BABYLON.Color4(0, 1, 1, 1), new BABYLON.Color4(1, 0, 0, 1)],
+          [new BABYLON.Color4(0, 1, 1, 1), new BABYLON.Color4(1, 0, 0, 1)],
+          [new BABYLON.Color4(0, 1, 1, 1), new BABYLON.Color4(1, 0, 0, 1)],
+          [new BABYLON.Color4(0, 1, 1, 1), new BABYLON.Color4(1, 0, 0, 1)],
+        ];
+
+        //Create linesystem
+        linesystem = BABYLON.MeshBuilder.CreateLineSystem("linesystem", {
+          lines: myLines,
+          colors: myColors,
+          updatable: true,
+        });
+        return _scene;
+      };
+
+      var scene = null;
+
+      // Watch for browser/canvas resize events
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+      // 监听窗口移动事件
+      window.addEventListener("resize", function (e) {
+        // 在窗口移动时执行的代码
+        console.log("窗口移动了", e);
+      });
+      function UpdateDataNow() {
+        if (guid == 0) {
+          return;
+        }
+        allData = JSON.parse(localStorage.getItem("data")) || {};
+        var winData = allData[guid] || {};
+        var pos = GetCurrentCameraPos();
+        winData["pos"] = { x: pos.x, y: pos.y, z: 0 };
+        winData["time"] = Date.now();
+        allData[guid] = winData;
+        localStorage.setItem("data", JSON.stringify(allData));
+        if (camera) {
+          camera.position = pos;
+        }
+        UpdateSphorePosition();
+      }
+      window.addEventListener("load", () => {
+        guid =
+          Date.now().toString(36) + Math.random().toString(36).substring(2);
+        UpdateDataNow();
+        console.log("窗口load");
+        scene = createScene(); //Call the createScene function
+
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () {
+          scene.render();
+          // if (oldX != window.screenX || oldY != window.screenY) {
+          //   console.log("moved!");
+          UpdateDataNow();
+          // } else {
+          //   // console.log("not moved!");
+          // }
+
+          // oldX = window.screenX;
+          // oldY = window.screenY;
+        });
+        // scene.debugLayer.show();
+      });
+      // 监听窗口关闭和刷新事件
+      window.addEventListener("beforeunload", function (event) {
+        // 在窗口关闭或刷新之前执行的代码
+        // event.preventDefault(); // 可选，用于显示自定义提示消息
+        console.log("窗口即将关闭或刷新beforeunload");
+      });
+
+      window.addEventListener("unload", function () {
+        // 在窗口关闭或刷新时执行的代码
+        console.log("窗口已关闭或刷新unload");
+        // event.preventDefault(); // 可选，用于显示自定义提示消息
+        var data = JSON.parse(localStorage.getItem("data")) || {};
+        if (data.hasOwnProperty(guid)) {
+          delete data[guid];
+        }
+        localStorage.setItem("data", JSON.stringify(data));
+        console.log("窗口load");
+      });
+      function UpdateSphorePosition() {
+        var mySphore = allSphoreData[guid];
+        if (!mySphore) return;
+        let myLines = [
+          // [new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(6, 6, 6)],
+        ];
+
+        //Array one color per point in the lines system
+        let myColors = [
+          // [new BABYLON.Color4(0, 1, 1, 1), new BABYLON.Color4(1, 0, 0, 1)],
+        ];
+        // 清除绘制的线条
+        // if (linesystem) {
+        // 	linesystem.dispose();
+        // }
+        for (const key in allData) {
+          if (Object.hasOwnProperty.call(allData, key)) {
+            let data = allData[key];
+            if (!data.hasOwnProperty("pos") || !data.pos.hasOwnProperty("x")) {
+              continue;
+            }
+            if (Date.now() - data.time > 1000) {
+              //一秒钟不更新的，就死了吧
+              var sphore = allSphoreData[key];
+              if (sphore) {
+                sphore.isVisible = false;
+                if (mySphore.coronas.hasOwnProperty(key)) {
+                  mySphore.coronas[key].isVisible = false;
+                }
+                // sphore.dispose();
+              }
+              delete allData[key];
+              continue;
+            }
+            let sphereData = allSphoreData[key] || null;
+            if (!sphereData) {
+              sphereData = CreateSphore(
+                data.pos.x,
+                data.pos.y,
+                data.pos.z,
+                key,
+                scene
+              );
+              allSphoreData[key] = sphereData;
+              mySphore.coronas[key] = mySphore.coronaParticles.clone();
+            }
+            var endPos = new BABYLON.Vector3(
+              data.pos.x,
+              data.pos.y,
+              data.pos.z
+            );
+            var startPosition = sphereData.position;
+            // if (startPosition.x == endPos.x && startPosition.y == endPos.y) {
+            //   continue;
+            // }
+
+            // let moveAnimation = new BABYLON.Animation(
+            //   "moveAnimation",
+            //   "position",
+            //   30,
+            //   BABYLON.Animation.ANIMATIONTYPE_VECTOR3,
+            //   BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+            // );
+
+            // let animationKeys = [
+            //   {
+            //     frame: 0,
+            //     value: new BABYLON.Vector3(
+            //       startPosition.x,
+            //       startPosition.y,
+            //       startPosition.z
+            //     ),
+            //   },
+            //   { frame: 100, value: endPos },
+            // ];
+            // moveAnimation.setKeys(animationKeys);
+
+            // sphereData.animations = [];
+            // sphereData.animations.push(moveAnimation);
+
+            // scene.beginAnimation(sphereData, 0, 100, false, 1);
+
+            sphereData.position = new BABYLON.Vector3(
+              data.pos.x,
+              data.pos.y,
+              data.pos.z
+            );
+            sphereData.isVisible = true;
+
+            if (key != guid) {
+              var pos = mySphore.position.clone();
+              pos = pos.subtract(sphereData.position).normalize().scale(3);
+              sphereData.coronaParticles.gravity = pos;
+              mySphore.coronas[key].gravity = pos.clone().negate();
+              var a = new BABYLON.Vector3(
+                sphereData.position.x,
+                sphereData.position.y,
+                sphereData.position.z
+              );
+              var b = new BABYLON.Vector3(
+                mySphore.position.x,
+                mySphore.position.y,
+                mySphore.position.z
+              );
+              if (a.x > b.x) {
+                var c = a;
+                a = b;
+                b = c;
+              }
+              //绘制线
+              myLines.push([a, b]);
+
+              myColors.push([
+                new BABYLON.Color4(0, 1, 1, 1),
+                new BABYLON.Color4(1, 0, 0, 1),
+              ]);
+            }
+          }
+        }
+        if (myLines.length > 0) {
+          //Create linesystem
+          var linesIns = BABYLON.MeshBuilder.CreateLineSystem(
+            "linesystem" + ++idx,
+            {
+              lines: myLines,
+              colors: myColors,
+              instance: linesystem,
+              updatable: true,
+            },
+            scene
+          );
+        }
+      }
+      window.addEventListener("close", function () {
+        // 在窗口关闭或刷新时执行的代码
+        console.log("窗口close");
+      });
+      var oldX = window.screenX,
+        oldY = window.screenY;
+
+      var interval = setInterval(function () {
+        if (guid == 0) {
+          return;
+        }
+        allData = JSON.parse(localStorage.getItem("data")) || {};
+        var winData = allData[guid] || {};
+        winData["time"] = Date.now();
+        allData[guid] = winData;
+        for (const key in allData) {
+          if (Object.hasOwnProperty.call(allData, key)) {
+            let data = allData[key];
+            var timeDiff = Date.now() - data.time;
+            if (timeDiff > 1000) {
+              delete allData[key];
+            }
+          }
+        }
+        localStorage.setItem("data", JSON.stringify(allData));
+      }, 300);
+    </script>
+  </body>
+</html>
